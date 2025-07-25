@@ -1,60 +1,50 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const { Pool } = require("pg");
+const path = require("path");
+const knex = require("knex")(
+  require(path.join(__dirname, "../../knexfile")).development
+);
 
-// Свързване с базата данни
-const pool = new Pool({
-  user: process.env.DB_USER,
-  host: process.env.DB_HOST,
-  database: process.env.DB_NAME,
-  password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT,
-});
-
-// Регистрация
 exports.registerUser = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    const existingUser = await pool.query(
-      "SELECT * FROM users WHERE email = $1",
-      [email]
-    );
-    if (existingUser.rows.length > 0) {
+    const existingUser = await knex("users").where({ email }).first();
+
+    if (existingUser) {
       return res.status(400).json({ message: "Email already registered" });
     }
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    await pool.query("INSERT INTO users (email, password) VALUES ($1, $2)", [
-      email,
-      hashedPassword,
-    ]);
+    const [newUser] = await knex("users")
+      .insert({
+        email,
+        password: hashedPassword,
+      })
+      .returning(["id", "email"]);
 
-    res.status(201).json({ message: "User registered successfully!" });
+    res
+      .status(201)
+      .json({ message: "User registered successfully", user: newUser });
   } catch (err) {
     console.error("Error registering user:", err.message);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-// Вход (login)
 exports.loginUser = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    const userResult = await pool.query(
-      "SELECT * FROM users WHERE email = $1",
-      [email]
-    );
-    const user = userResult.rows[0];
+    const user = await knex("users").where({ email }).first();
 
     if (!user) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
+
     if (!isMatch) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
@@ -63,9 +53,54 @@ exports.loginUser = async (req, res) => {
       expiresIn: "1h",
     });
 
-    res.status(200).json({ token });
+    res.json({ token });
   } catch (err) {
-    console.error("Login error:", err.message);
+    console.error("Error logging in:", err.message);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+//  Update user (email and/or password)
+exports.updateUser = async (req, res) => {
+  const userId = req.user.id;
+  const { email, password } = req.body;
+
+  try {
+    const updateData = {};
+
+    if (email) updateData.email = email;
+    if (password) {
+      const hashed = await bcrypt.hash(password, 10);
+      updateData.password = hashed;
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ message: "No data provided for update" });
+    }
+
+    const [updatedUser] = await knex("users")
+      .where({ id: userId })
+      .update(updateData)
+      .returning(["id", "email"]);
+
+    res.json({ message: "User updated", user: updatedUser });
+  } catch (err) {
+    console.error("Error updating user:", err.message);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Delete user and their events
+exports.deleteUser = async (req, res) => {
+  const userId = req.user.id;
+
+  try {
+    await knex("events").where({ user_id: userId }).del(); // delete events
+    await knex("users").where({ id: userId }).del(); // delete user
+
+    res.json({ message: "User and their events deleted" });
+  } catch (err) {
+    console.error("Error deleting user:", err.message);
     res.status(500).json({ message: "Server error" });
   }
 };
