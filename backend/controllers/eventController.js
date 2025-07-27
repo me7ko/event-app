@@ -66,6 +66,11 @@ exports.getEventById = async (req, res) => {
     if (!event) {
       return res.status(404).json({ message: "Event not found" });
     }
+    if (event.user_id !== userId) {
+      return res
+        .status(403)
+        .json({ message: "Access denied: Not your event." });
+    }
 
     res.json({ event });
   } catch (err) {
@@ -108,6 +113,12 @@ exports.updateEvent = async (req, res) => {
       return res.status(404).json({ message: "Event not found or not yours." });
     }
 
+    if (event.user_id !== userId) {
+      return res
+        .status(403)
+        .json({ message: "Access denied: Not your event." });
+    }
+
     res.json({ message: "Event updated", event: updated[0] });
   } catch (err) {
     console.error("Error updating event:", err);
@@ -126,6 +137,12 @@ exports.deleteEvent = async (req, res) => {
 
     if (!event) {
       return res.status(404).json({ message: "Event not found" });
+    }
+
+    if (event.user_id !== userId) {
+      return res
+        .status(403)
+        .json({ message: "Access denied: Not your event." });
     }
 
     await knex("events").where({ id: eventId }).del();
