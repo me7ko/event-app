@@ -1,11 +1,13 @@
 "use client";
 
-// app/page.js
 import Image from "next/image";
 import HomePhoto from "../../public/HomePhoto.jpg";
 import Link from "next/link";
+import { useAuth } from "../context/AuthContext"; // добавено
 
 export default function Home() {
+  const { isAuthenticated } = useAuth(); // извличане от контекста
+
   return (
     <main className="bg-white min-h-screen px-6 py-16 sm:px-12">
       {/* Hero section */}
@@ -18,21 +20,26 @@ export default function Home() {
           <p className="text-gray-600 text-lg">
             Easily plan, track, and manage all your events in one place.
           </p>
-          <div className="flex justify-center md:justify-start gap-4">
-            <Link href="/login">
-              <button className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition cursor-pointer">
-                Login
-              </button>
-            </Link>
 
-            <Link href="/register">
-              <button className="px-4 py-2 border border-indigo-600 text-indigo-600 rounded-md hover:bg-indigo-100 transition cursor-pointer">
-                Register
-              </button>
-            </Link>
-          </div>
+          {/* 👇 Показвай бутоните само ако не е логнат */}
+          {!isAuthenticated && (
+            <div className="flex justify-center md:justify-start gap-4">
+              <Link href="/login">
+                <button className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition cursor-pointer">
+                  Login
+                </button>
+              </Link>
+
+              <Link href="/register">
+                <button className="px-4 py-2 border border-indigo-600 text-indigo-600 rounded-md hover:bg-indigo-100 transition cursor-pointer">
+                  Register
+                </button>
+              </Link>
+            </div>
+          )}
         </div>
 
+        {/* Image section */}
         <div className="flex-1">
           <Image
             src={HomePhoto}
@@ -43,6 +50,7 @@ export default function Home() {
         </div>
       </div>
 
+      {/* Features */}
       <div className="max-w-screen-xl mx-auto mt-20 grid grid-cols-1 md:grid-cols-3 gap-8">
         <Feature
           icon="📅"
