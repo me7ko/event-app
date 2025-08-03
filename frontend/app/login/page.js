@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../context/AuthContext"; // добавено
+import { setAuthCookie } from "../utils/setAuthCookie";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -39,7 +40,7 @@ export default function LoginPage() {
 
       // 🔄 Използваме контекста, за да запишем токена и задействаме обновяване
       login(data.token);
-
+      setAuthCookie(data.token);
       // Пренасочване
       router.push("/");
     } catch (err) {

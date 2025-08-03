@@ -16,9 +16,7 @@ export default function Navbar() {
     setHasToken(!!token);
   }, [isAuthenticated]);
 
-  const toggleMenu = () => {
-    setIsOpen(!isOpen);
-  };
+  const toggleMenu = () => setIsOpen(!isOpen);
 
   return (
     <nav className="bg-white shadow sticky top-0 z-50">
@@ -28,10 +26,20 @@ export default function Navbar() {
         </Link>
 
         {/* Desktop menu */}
-        <div className="hidden md:flex space-x-6">
+        <div className="hidden md:flex space-x-6 items-center">
           <Link href="/" className="text-gray-700 hover:text-indigo-600">
             Home
           </Link>
+
+          {hasToken && (
+            <Link
+              href="/dashboard"
+              className="text-gray-700 hover:text-indigo-600"
+            >
+              Dashboard
+            </Link>
+          )}
+
           {hasToken ? (
             <button
               onClick={logout}
@@ -72,6 +80,16 @@ export default function Navbar() {
           <Link href="/" className="block text-gray-700 hover:text-indigo-600">
             Home
           </Link>
+
+          {hasToken && (
+            <Link
+              href="/dashboard"
+              className="block text-gray-700 hover:text-indigo-600"
+            >
+              Dashboard
+            </Link>
+          )}
+
           {hasToken ? (
             <button
               onClick={logout}

@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../context/AuthContext"; // Добавяме контекста
+import { useAuth } from "../context/AuthContext";
+import { setAuthCookie } from "../utils/setAuthCookie";
 
 export default function RegisterPage() {
   const [email, setEmail] = useState("");
@@ -39,8 +40,8 @@ export default function RegisterPage() {
 
       // Влизане чрез контекста, който ще обнови автоматично Navbar
       login(data.token);
+      setAuthCookie(data.token);
 
-      // Пренасочване след регистрация
       router.push("/");
     } catch (err) {
       console.error(err);
