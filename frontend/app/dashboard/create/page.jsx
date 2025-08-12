@@ -3,9 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { getToken } from "../../utils/auth";
+import { useToast } from "../../context/ToastContext";
 
 export default function CreateEventPage() {
   const router = useRouter();
+  const { push } = useToast();
 
   const [form, setForm] = useState({
     name: "",
@@ -14,45 +16,43 @@ export default function CreateEventPage() {
     location: "",
     maxAttendees: "",
   });
-
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
   const validate = () => {
     if (!form.name.trim() || !form.date || !form.location.trim()) {
       return "Name, datetime and location are required.";
     }
-
     const eventDate = new Date(form.date);
-    const now = new Date();
-
-    if (eventDate.getTime() <= now.getTime() + 60000) {
+    if (Number.isNaN(eventDate.getTime())) {
+      return "Invalid date.";
+    }
+    if (eventDate.getTime() <= Date.now() + 60_000) {
       return "Event date must be in the future.";
     }
-
     return "";
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
+    if (submitting) return;
 
+    setError("");
     const validationError = validate();
     if (validationError) {
       setError(validationError);
+      push("error", validationError);
       return;
     }
 
     try {
+      setSubmitting(true);
       const token = getToken();
-
       const res = await fetch("http://localhost:5000/api/events", {
         method: "POST",
         headers: {
@@ -62,21 +62,29 @@ export default function CreateEventPage() {
         body: JSON.stringify({
           name: form.name,
           description: form.description,
-          datetime: form.date, // важно: backend очаква timestamp
+          datetime: form.date, // бекендът очаква 'datetime'
           location: form.location,
           max_attendees: form.maxAttendees || null,
         }),
       });
 
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || "Failed to create event.");
+        const msg = data.message || "Failed to create event.";
+        setError(msg);
+        push("error", msg);
+        return;
       }
 
+      push("success", "Event created successfully!");
       router.push("/dashboard");
     } catch (err) {
       console.error(err);
-      setError(err.message);
+      const msg = "Something went wrong. Please try again.";
+      setError(msg);
+      push("error", msg);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -85,6 +93,7 @@ export default function CreateEventPage() {
       <h1 className="text-3xl font-bold text-gray-800 mb-6">
         Create New Event
       </h1>
+
       {error && <p className="text-red-500 mb-4">{error}</p>}
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -95,7 +104,7 @@ export default function CreateEventPage() {
             name="name"
             value={form.name}
             onChange={handleChange}
-            className="w-full border px-3 py-2 rounded-md"
+            className="w-full border px-3 py-2 rounded-md focus:outline-none focus:ring focus:border-indigo-500"
             required
           />
         </div>
@@ -107,7 +116,7 @@ export default function CreateEventPage() {
             value={form.description}
             onChange={handleChange}
             rows={3}
-            className="w-full border px-3 py-2 rounded-md"
+            className="w-full border px-3 py-2 rounded-md focus:outline-none focus:ring focus:border-indigo-500"
           />
         </div>
 
@@ -118,7 +127,7 @@ export default function CreateEventPage() {
             name="date"
             value={form.date}
             onChange={handleChange}
-            className="w-full border px-3 py-2 rounded-md"
+            className="w-full border px-3 py-2 rounded-md focus:outline-none focus:ring focus:border-indigo-500"
             required
           />
         </div>
@@ -130,7 +139,7 @@ export default function CreateEventPage() {
             name="location"
             value={form.location}
             onChange={handleChange}
-            className="w-full border px-3 py-2 rounded-md"
+            className="w-full border px-3 py-2 rounded-md focus:outline-none focus:ring focus:border-indigo-500"
             required
           />
         </div>
@@ -144,16 +153,17 @@ export default function CreateEventPage() {
             name="maxAttendees"
             value={form.maxAttendees}
             onChange={handleChange}
-            className="w-full border px-3 py-2 rounded-md"
             min={1}
+            className="w-full border px-3 py-2 rounded-md focus:outline-none focus:ring focus:border-indigo-500"
           />
         </div>
 
         <button
           type="submit"
-          className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition"
+          disabled={submitting}
+          className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          Create Event
+          {submitting ? "Creating..." : "Create Event"}
         </button>
       </form>
     </div>

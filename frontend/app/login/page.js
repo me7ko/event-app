@@ -2,50 +2,63 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../context/AuthContext"; // добавено
+import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
 import { setAuthCookie } from "../utils/setAuthCookie";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
 
-  const { login } = useAuth(); // ← извличаме login метода от контекста
+  const { login } = useAuth();
+  const { push } = useToast();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submitting) return;
     setError("");
 
     if (!email || !password) {
-      setError("Please fill in all fields.");
+      const msg = "Please fill in all fields.";
+      setError(msg);
+      push("error", msg);
       return;
     }
 
     try {
+      setSubmitting(true);
+
       const res = await fetch("http://localhost:5000/api/auth/login", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        setError(data.message || "Login failed");
+        const msg = data.message || "Login failed";
+        setError(msg);
+        push("error", msg);
         return;
       }
 
-      // 🔄 Използваме контекста, за да запишем токена и задействаме обновяване
+      // Записваме access токена (и cookie ако ползваш такова)
       login(data.token);
       setAuthCookie(data.token);
-      // Пренасочване
-      router.push("/");
+
+      push("success", "Logged in successfully!");
+      router.push("/dashboard");
     } catch (err) {
       console.error(err);
-      setError("Something went wrong. Please try again.");
+      const msg = "Something went wrong. Please try again.";
+      setError(msg);
+      push("error", msg);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -56,6 +69,7 @@ export default function LoginPage() {
           Login
         </h2>
         {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-gray-700">Email</label>
@@ -65,8 +79,10 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
+              autoComplete="email"
             />
           </div>
+
           <div>
             <label className="block text-gray-700">Password</label>
             <input
@@ -75,13 +91,16 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
+              autoComplete="current-password"
             />
           </div>
+
           <button
             type="submit"
-            className="w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700 transition cursor-pointer"
+            disabled={submitting}
+            className="w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700 transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            Login
+            {submitting ? "Signing in..." : "Login"}
           </button>
         </form>
       </div>

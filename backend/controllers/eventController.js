@@ -57,15 +57,40 @@ exports.createEvent = async (req, res) => {
 /* LIST (for current user) */
 exports.getUserEvents = async (req, res) => {
   const userId = req.user.id;
+  const page = parseInt(req.query.page, 10) || 1;
+  const limit = parseInt(req.query.limit, 10) || 3;
+  const offset = (page - 1) * limit;
+
+  const q = (req.query.q || "").trim();
+  const sort = (req.query.sort || "asc").toLowerCase();
+  const sortDir = sort === "desc" ? "desc" : "asc";
 
   try {
-    const events = await knex("events")
-      .where({ user_id: userId })
-      .orderBy("datetime", "asc");
-    return res.json({ events });
+    let base = knex("events").where({ user_id: userId });
+
+    if (q) {
+      base = base.andWhere(function () {
+        this.whereILike("name", `%${q}%`).orWhereILike("location", `%${q}%`);
+      });
+    }
+
+    const [{ count }] = await base.clone().count("* as count");
+
+    const events = await base
+      .clone()
+      .orderBy("datetime", sortDir)
+      .limit(limit)
+      .offset(offset);
+
+    res.json({
+      events,
+      total: parseInt(count, 10) || 0,
+      page,
+      totalPages: Math.max(1, Math.ceil((parseInt(count, 10) || 0) / limit)),
+    });
   } catch (err) {
     console.error("Error fetching events:", err);
-    return res.status(500).json({ message: "Error fetching events" });
+    res.status(500).json({ message: "Error fetching events" });
   }
 };
 

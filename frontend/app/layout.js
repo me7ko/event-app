@@ -3,6 +3,7 @@ import "./globals.css";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import { AuthProvider } from "./context/AuthContext";
+import { ToastProvider } from "./context/ToastContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -24,10 +25,12 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body>
         <AuthProvider>
-          {" "}
-          <Navbar />
-          {children}
-          <Footer />
+          <ToastProvider>
+            {" "}
+            <Navbar />
+            {children}
+            <Footer />
+          </ToastProvider>
         </AuthProvider>
       </body>
     </html>

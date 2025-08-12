@@ -5,11 +5,13 @@ import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { getToken } from "../utils/auth";
+import { useRouter } from "next/navigation";
 
 export default function Navbar() {
   const { isAuthenticated, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [hasToken, setHasToken] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     const token = getToken();
@@ -17,6 +19,11 @@ export default function Navbar() {
   }, [isAuthenticated]);
 
   const toggleMenu = () => setIsOpen(!isOpen);
+
+  const handleLogout = () => {
+    logout();
+    router.push("/"); // Пренасочване към начална страница
+  };
 
   return (
     <nav className="bg-white shadow sticky top-0 z-50">
@@ -42,7 +49,7 @@ export default function Navbar() {
 
           {hasToken ? (
             <button
-              onClick={logout}
+              onClick={handleLogout}
               className="text-gray-700 hover:text-indigo-600 cursor-pointer"
             >
               Logout
@@ -92,7 +99,7 @@ export default function Navbar() {
 
           {hasToken ? (
             <button
-              onClick={logout}
+              onClick={handleLogout}
               className="block text-gray-700 hover:text-indigo-600 cursor-pointer"
             >
               Logout
