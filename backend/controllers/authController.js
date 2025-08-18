@@ -5,53 +5,64 @@ const knex = require("knex")(
   require(path.join(__dirname, "../../knexfile")).development
 );
 
+// helper: подписва access токен и включва role
+const signAccessToken = (user) =>
+  jwt.sign(
+    { userId: user.id, role: user.role || "user" },
+    process.env.JWT_SECRET,
+    { expiresIn: "1h" }
+  );
+
+// POST /api/auth/register
 exports.registerUser = async (req, res) => {
   const { email, password } = req.body;
 
   try {
     const existingUser = await knex("users").where({ email }).first();
-
     if (existingUser) {
       return res.status(400).json({ message: "Email already registered" });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // дефолтна роля "user"
     const [newUser] = await knex("users")
       .insert({
         email,
         password: hashedPassword,
+        role: "user",
       })
-      .returning(["id", "email"]);
+      .returning(["id", "email", "role"]);
 
-    res
-      .status(201)
-      .json({ message: "User registered successfully", user: newUser });
+    const token = signAccessToken(newUser);
+
+    res.status(201).json({
+      message: "User registered successfully",
+      user: newUser,
+      token, // запазваме съвместимостта с фронта
+    });
   } catch (err) {
     console.error("Error registering user:", err.message);
     res.status(500).json({ message: "Server error" });
   }
 };
 
+// POST /api/auth/login
 exports.loginUser = async (req, res) => {
   const { email, password } = req.body;
 
   try {
     const user = await knex("users").where({ email }).first();
-
     if (!user) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
-
     if (!isMatch) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
-      expiresIn: "1h",
-    });
+    const token = signAccessToken(user);
 
     res.json({ token });
   } catch (err) {
@@ -60,7 +71,7 @@ exports.loginUser = async (req, res) => {
   }
 };
 
-//  Update user (email and/or password)
+// PUT /api/auth/me  (update email/password на логнатия потребител)
 exports.updateUser = async (req, res) => {
   const userId = req.user.id;
   const { email, password } = req.body;
@@ -81,7 +92,7 @@ exports.updateUser = async (req, res) => {
     const [updatedUser] = await knex("users")
       .where({ id: userId })
       .update(updateData)
-      .returning(["id", "email"]);
+      .returning(["id", "email", "role"]);
 
     res.json({ message: "User updated", user: updatedUser });
   } catch (err) {
@@ -90,7 +101,7 @@ exports.updateUser = async (req, res) => {
   }
 };
 
-// Delete user and their events
+// DELETE /api/auth/me  (изтрива потребителя и неговите събития)
 exports.deleteUser = async (req, res) => {
   const userId = req.user.id;
 

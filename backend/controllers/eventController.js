@@ -57,6 +57,9 @@ exports.createEvent = async (req, res) => {
 /* LIST (for current user) */
 exports.getUserEvents = async (req, res) => {
   const userId = req.user.id;
+  const role = req.user.role || "user";
+  const isAdmin = role === "admin";
+
   const page = parseInt(req.query.page, 10) || 1;
   const limit = parseInt(req.query.limit, 10) || 3;
   const offset = (page - 1) * limit;
@@ -66,19 +69,36 @@ exports.getUserEvents = async (req, res) => {
   const sortDir = sort === "desc" ? "desc" : "asc";
 
   try {
-    let base = knex("events").where({ user_id: userId });
+    // базовият query: join към users, за да върнем и имейла на собственика
+    let base = knex("events")
+      .leftJoin("users", "events.user_id", "users.id")
+      .select("events.*", knex.raw("users.email AS owner_email"));
 
+    // ако не е админ, ограничаваме до неговите събития
+    if (!isAdmin) {
+      base = base.where("events.user_id", userId);
+    }
+
+    // търсене по име/локация
     if (q) {
       base = base.andWhere(function () {
-        this.whereILike("name", `%${q}%`).orWhereILike("location", `%${q}%`);
+        this.whereILike("events.name", `%${q}%`).orWhereILike(
+          "events.location",
+          `%${q}%`
+        );
       });
     }
 
-    const [{ count }] = await base.clone().count("* as count");
+    // count (distinct за всеки случай заради join-а)
+    const [{ count }] = await base
+      .clone()
+      .clearSelect()
+      .countDistinct("events.id as count");
 
+    // данните
     const events = await base
       .clone()
-      .orderBy("datetime", sortDir)
+      .orderBy("events.datetime", sortDir)
       .limit(limit)
       .offset(offset);
 
@@ -97,30 +117,39 @@ exports.getUserEvents = async (req, res) => {
 /* GET BY ID (owned by user) */
 exports.getEventById = async (req, res) => {
   const userId = req.user.id;
+  const isAdmin = (req.user.role || "user") === "admin";
   const eventId = req.params.id;
 
   try {
-    const event = await knex("events")
-      .where({ id: eventId, user_id: userId })
-      .first();
+    // Взимаме събитието, + email на собственика
+    let q = knex("events")
+      .leftJoin("users", "events.user_id", "users.id")
+      .select("events.*", knex.raw("users.email as owner_email"))
+      .where("events.id", eventId);
 
-    if (!event) {
-      return res.status(404).json({ message: "Event not found" });
+    // Ако НЕ е admin, ограничаваме до неговите събития
+    if (!isAdmin) {
+      q = q.andWhere("events.user_id", userId);
     }
 
-    return res.json({ event });
+    const event = await q.first();
+    if (!event) return res.status(404).json({ message: "Event not found" });
+
+    res.json({ event });
   } catch (err) {
     console.error("Error fetching event:", err);
-    return res.status(500).json({ message: "Error fetching event" });
+    res.status(500).json({ message: "Error fetching event" });
   }
 };
 
 /* UPDATE */
 exports.updateEvent = async (req, res) => {
   const userId = req.user.id;
+  const isAdmin = (req.user.role || "user") === "admin";
   const eventId = req.params.id;
   const { name, description, datetime, location, max_attendees } = req.body;
 
+  // базова валидация
   if (!name || !datetime || !location) {
     return res
       .status(400)
@@ -136,28 +165,42 @@ exports.updateEvent = async (req, res) => {
   }
 
   try {
-    // първо намираме събитието, за да различим 404 от 403
+    // 1) намери събитието (за да различим 404 от 403)
     const existing = await knex("events").where({ id: eventId }).first();
     if (!existing) {
       return res.status(404).json({ message: "Event not found" });
     }
-    if (existing.user_id !== userId) {
+
+    // 2) ако НЕ е админ, трябва да е собственик
+    if (!isAdmin && existing.user_id !== userId) {
       return res
         .status(403)
         .json({ message: "Access denied: Not your event." });
     }
 
+    // 3) изпълни update
+    const whereClause = isAdmin
+      ? { id: eventId }
+      : { id: eventId, user_id: userId };
+
     const updated = await knex("events")
-      .where({ id: eventId, user_id: userId })
-      .update({
-        name,
-        description: description ?? null,
-        datetime: iso,
-        location,
-        max_attendees: normalizeMax(max_attendees),
-        updated_at: knex.fn.now(),
-      })
-      .returning("*");
+      .where(whereClause)
+      .update(
+        {
+          name,
+          description: description ?? null,
+          datetime: iso,
+          location,
+          max_attendees: normalizeMax(max_attendees),
+          updated_at: knex.fn.now(),
+        },
+        ["*"] // Postgres: връща обновения ред
+      );
+
+    if (!updated || updated.length === 0) {
+      // за всеки случай, ако не е пипнат ред (например race condition)
+      return res.status(404).json({ message: "Event not found" });
+    }
 
     return res.json({ message: "Event updated", event: updated[0] });
   } catch (err) {
@@ -170,23 +213,28 @@ exports.updateEvent = async (req, res) => {
 exports.deleteEvent = async (req, res) => {
   const eventId = req.params.id;
   const userId = req.user.id;
+  const isAdmin = (req.user.role || "user") === "admin";
 
   try {
-    const existing = await knex("events").where({ id: eventId }).first();
+    // Взимаме евента по id (без да филтрираме по user_id)
+    const event = await knex("events").where({ id: eventId }).first();
 
-    if (!existing) {
+    if (!event) {
       return res.status(404).json({ message: "Event not found" });
     }
-    if (existing.user_id !== userId) {
+
+    // Ако НЕ си admin, трябва да си собственик
+    if (!isAdmin && event.user_id !== userId) {
       return res
         .status(403)
         .json({ message: "Access denied: Not your event." });
     }
 
     await knex("events").where({ id: eventId }).del();
-    return res.json({ message: "Event deleted successfully" });
+
+    res.json({ message: "Event deleted successfully" });
   } catch (err) {
-    console.error("Error deleting event:", err);
-    return res.status(500).json({ message: "Error deleting event" });
+    console.error(err);
+    res.status(500).json({ message: "Error deleting event" });
   }
 };

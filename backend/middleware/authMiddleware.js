@@ -11,7 +11,13 @@ const authMiddleware = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = { id: decoded.userId }; // запазваме ID-то в req.user
+
+    // Съхраняваме id и role от токена
+    req.user = {
+      id: decoded.userId,
+      role: decoded.role || "user", // по подразбиране user
+    };
+
     next();
   } catch (err) {
     return res.status(401).json({ message: "Invalid token" });
