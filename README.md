@@ -30,22 +30,29 @@ cd backend
 npm install
 ```
 
-## 2.1. Create .env file
-.env.example:
+## 2.1. Rename .env.example to .env
+.env:
+- PORT=5000
+- JWT_SECRET=your_secret_key
 - DB_USER=your_postgres_user
 - DB_PASSWORD=your_postgres_password
 - DB_HOST=localhost
 - DB_PORT=5432
 - DB_NAME=eventapp
 
-## 2.2. Setup the database
+## 2.2. Create PostgreSQL database
+```sql
+CREATE DATABASE eventapp;
+```
+
+## 2.3. Setup the database
 
 Run migrations to create the database schema:
 ```bash
 npx knex migrate:latest
 ```
 
-## 2.3. Start the backend
+## 2.4. Start the backend
 ```bash
 npm run dev
 ```
