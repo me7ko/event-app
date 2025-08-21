@@ -8,7 +8,6 @@ const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // При зареждане - проверяваме дали има токен
   useEffect(() => {
     const token = getToken();
     setIsAuthenticated(!!token);

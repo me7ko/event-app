@@ -62,7 +62,7 @@ export default function CreateEventPage() {
         body: JSON.stringify({
           name: form.name,
           description: form.description,
-          datetime: form.date, // бекендът очаква 'datetime'
+          datetime: form.date,
           location: form.location,
           max_attendees: form.maxAttendees || null,
         }),

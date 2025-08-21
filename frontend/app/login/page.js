@@ -46,7 +46,6 @@ export default function LoginPage() {
         return;
       }
 
-      // Записваме access токена (и cookie ако ползваш такова)
       login(data.token);
       setAuthCookie(data.token);
 

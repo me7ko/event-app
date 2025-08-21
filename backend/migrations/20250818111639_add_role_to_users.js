@@ -2,7 +2,7 @@ exports.up = async function (knex) {
   const hasColumn = await knex.schema.hasColumn("users", "role");
   if (!hasColumn) {
     await knex.schema.alterTable("users", (table) => {
-      table.string("role").notNullable().defaultTo("user"); // "user" | "admin"
+      table.string("role").notNullable().defaultTo("user");
     });
   }
 };

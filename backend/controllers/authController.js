@@ -5,7 +5,7 @@ const knex = require("knex")(
   require(path.join(__dirname, "../../knexfile")).development
 );
 
-// helper: подписва access токен и включва role
+
 const signAccessToken = (user) =>
   jwt.sign(
     { userId: user.id, role: user.role || "user" },
@@ -13,7 +13,7 @@ const signAccessToken = (user) =>
     { expiresIn: "1h" }
   );
 
-// POST /api/auth/register
+
 exports.registerUser = async (req, res) => {
   const { email, password } = req.body;
 
@@ -25,7 +25,7 @@ exports.registerUser = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // дефолтна роля "user"
+    
     const [newUser] = await knex("users")
       .insert({
         email,
@@ -39,7 +39,7 @@ exports.registerUser = async (req, res) => {
     res.status(201).json({
       message: "User registered successfully",
       user: newUser,
-      token, // запазваме съвместимостта с фронта
+      token, 
     });
   } catch (err) {
     console.error("Error registering user:", err.message);
@@ -47,7 +47,7 @@ exports.registerUser = async (req, res) => {
   }
 };
 
-// POST /api/auth/login
+
 exports.loginUser = async (req, res) => {
   const { email, password } = req.body;
 
@@ -71,7 +71,7 @@ exports.loginUser = async (req, res) => {
   }
 };
 
-// PUT /api/auth/me  (update email/password на логнатия потребител)
+
 exports.updateUser = async (req, res) => {
   const userId = req.user.id;
   const { email, password } = req.body;
@@ -101,13 +101,13 @@ exports.updateUser = async (req, res) => {
   }
 };
 
-// DELETE /api/auth/me  (изтрива потребителя и неговите събития)
+
 exports.deleteUser = async (req, res) => {
   const userId = req.user.id;
 
   try {
-    await knex("events").where({ user_id: userId }).del(); // delete events
-    await knex("users").where({ id: userId }).del(); // delete user
+    await knex("events").where({ user_id: userId }).del(); 
+    await knex("users").where({ id: userId }).del(); 
 
     res.json({ message: "User and their events deleted" });
   } catch (err) {

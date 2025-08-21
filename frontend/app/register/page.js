@@ -11,7 +11,7 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const router = useRouter();
 
-  const { login } = useAuth(); // Взимаме login функцията от контекста
+  const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -38,7 +38,6 @@ export default function RegisterPage() {
         return;
       }
 
-      // Влизане чрез контекста, който ще обнови автоматично Navbar
       login(data.token);
       setAuthCookie(data.token);
 

@@ -12,10 +12,9 @@ const authMiddleware = (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Съхраняваме id и role от токена
     req.user = {
       id: decoded.userId,
-      role: decoded.role || "user", // по подразбиране user
+      role: decoded.role || "user",
     };
 
     next();

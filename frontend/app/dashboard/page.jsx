@@ -13,17 +13,15 @@ export default function DashboardPage() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // UI state
   const [query, setQuery] = useState("");
-  const [sortOrder, setSortOrder] = useState("asc"); // "asc" | "desc"
+  const [sortOrder, setSortOrder] = useState("asc");
   const [page, setPage] = useState(1);
 
-  // дръпни ВСИЧКИ евенти наведнъж (голям лимит)
   const fetchAllEvents = async (token) => {
     try {
       const url = new URL("/api/events", API);
       url.searchParams.set("page", "1");
-      url.searchParams.set("limit", "1000"); // достатъчно голям лимит
+      url.searchParams.set("limit", "1000");
 
       const res = await fetch(url.toString(), {
         headers: { Authorization: `Bearer ${token}` },
@@ -51,10 +49,8 @@ export default function DashboardPage() {
     } else {
       fetchAllEvents(token);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Филтриране + сортиране (клиентска логика)
   const filteredAndSorted = useMemo(() => {
     const q = query.trim().toLowerCase();
 
@@ -75,7 +71,6 @@ export default function DashboardPage() {
     return sorted;
   }, [events, query, sortOrder]);
 
-  // Пагинация (клиентска)
   const totalPages = Math.max(
     1,
     Math.ceil(filteredAndSorted.length / PAGE_SIZE)
@@ -85,12 +80,10 @@ export default function DashboardPage() {
     return filteredAndSorted.slice(start, start + PAGE_SIZE);
   }, [filteredAndSorted, page]);
 
-  // При смяна на търсене/сортиране → връщаме на стр. 1
   useEffect(() => {
     setPage(1);
   }, [query, sortOrder]);
 
-  // Delete (и оптимистично премахване)
   const handleDelete = async (id) => {
     if (!confirm("Delete this event?")) return;
     try {
@@ -120,24 +113,20 @@ export default function DashboardPage() {
 
   return (
     <div className="max-w-screen-xl mx-auto px-6 py-10">
-      {/* Header + actions */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <h1 className="text-3xl font-bold text-gray-800">Your Events</h1>
         <div className="flex flex-col sm:flex-row gap-3">
-          {/* Search (без <form>) */}
           <input
             type="text"
             placeholder="Search by name or location..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => {
-              // блокирай Enter да не предизвика навигация
               if (e.key === "Enter") e.preventDefault();
             }}
             className="border rounded-md px-3 py-2 w-full sm:w-64"
           />
 
-          {/* Sort */}
           <select
             value={sortOrder}
             onChange={(e) => setSortOrder(e.target.value)}
@@ -158,7 +147,6 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* List */}
       {visiblePageItems.length === 0 ? (
         <p className="text-gray-600">No events found.</p>
       ) : (
@@ -206,7 +194,6 @@ export default function DashboardPage() {
         </ul>
       )}
 
-      {/* Pagination (client-side) */}
       <div className="flex justify-center gap-4 mt-6">
         <button
           type="button"

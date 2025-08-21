@@ -1,6 +1,5 @@
 const knex = require("knex")(require("../../knexfile").development);
 
-// helpers
 const toISO = (value) => {
   const d = new Date(value);
   return isNaN(d.getTime()) ? null : d.toISOString();
@@ -9,7 +8,7 @@ const toISO = (value) => {
 const isFutureDate = (value) => {
   const d = new Date(value);
   if (isNaN(d.getTime())) return false;
-  // +60s буфер, за да не отхвърляме "точно сега"
+
   return d.getTime() > Date.now() + 60_000;
 };
 
@@ -54,7 +53,6 @@ exports.createEvent = async (req, res) => {
   }
 };
 
-/* LIST (for current user) */
 exports.getUserEvents = async (req, res) => {
   const userId = req.user.id;
   const role = req.user.role || "user";
@@ -69,17 +67,14 @@ exports.getUserEvents = async (req, res) => {
   const sortDir = sort === "desc" ? "desc" : "asc";
 
   try {
-    // базовият query: join към users, за да върнем и имейла на собственика
     let base = knex("events")
       .leftJoin("users", "events.user_id", "users.id")
       .select("events.*", knex.raw("users.email AS owner_email"));
 
-    // ако не е админ, ограничаваме до неговите събития
     if (!isAdmin) {
       base = base.where("events.user_id", userId);
     }
 
-    // търсене по име/локация
     if (q) {
       base = base.andWhere(function () {
         this.whereILike("events.name", `%${q}%`).orWhereILike(
@@ -89,13 +84,11 @@ exports.getUserEvents = async (req, res) => {
       });
     }
 
-    // count (distinct за всеки случай заради join-а)
     const [{ count }] = await base
       .clone()
       .clearSelect()
       .countDistinct("events.id as count");
 
-    // данните
     const events = await base
       .clone()
       .orderBy("events.datetime", sortDir)
@@ -114,20 +107,17 @@ exports.getUserEvents = async (req, res) => {
   }
 };
 
-/* GET BY ID (owned by user) */
 exports.getEventById = async (req, res) => {
   const userId = req.user.id;
   const isAdmin = (req.user.role || "user") === "admin";
   const eventId = req.params.id;
 
   try {
-    // Взимаме събитието, + email на собственика
     let q = knex("events")
       .leftJoin("users", "events.user_id", "users.id")
       .select("events.*", knex.raw("users.email as owner_email"))
       .where("events.id", eventId);
 
-    // Ако НЕ е admin, ограничаваме до неговите събития
     if (!isAdmin) {
       q = q.andWhere("events.user_id", userId);
     }
@@ -142,14 +132,12 @@ exports.getEventById = async (req, res) => {
   }
 };
 
-/* UPDATE */
 exports.updateEvent = async (req, res) => {
   const userId = req.user.id;
   const isAdmin = (req.user.role || "user") === "admin";
   const eventId = req.params.id;
   const { name, description, datetime, location, max_attendees } = req.body;
 
-  // базова валидация
   if (!name || !datetime || !location) {
     return res
       .status(400)
@@ -165,20 +153,17 @@ exports.updateEvent = async (req, res) => {
   }
 
   try {
-    // 1) намери събитието (за да различим 404 от 403)
     const existing = await knex("events").where({ id: eventId }).first();
     if (!existing) {
       return res.status(404).json({ message: "Event not found" });
     }
 
-    // 2) ако НЕ е админ, трябва да е собственик
     if (!isAdmin && existing.user_id !== userId) {
       return res
         .status(403)
         .json({ message: "Access denied: Not your event." });
     }
 
-    // 3) изпълни update
     const whereClause = isAdmin
       ? { id: eventId }
       : { id: eventId, user_id: userId };
@@ -194,11 +179,10 @@ exports.updateEvent = async (req, res) => {
           max_attendees: normalizeMax(max_attendees),
           updated_at: knex.fn.now(),
         },
-        ["*"] // Postgres: връща обновения ред
+        ["*"]
       );
 
     if (!updated || updated.length === 0) {
-      // за всеки случай, ако не е пипнат ред (например race condition)
       return res.status(404).json({ message: "Event not found" });
     }
 
@@ -216,14 +200,12 @@ exports.deleteEvent = async (req, res) => {
   const isAdmin = (req.user.role || "user") === "admin";
 
   try {
-    // Взимаме евента по id (без да филтрираме по user_id)
     const event = await knex("events").where({ id: eventId }).first();
 
     if (!event) {
       return res.status(404).json({ message: "Event not found" });
     }
 
-    // Ако НЕ си admin, трябва да си собственик
     if (!isAdmin && event.user_id !== userId) {
       return res
         .status(403)

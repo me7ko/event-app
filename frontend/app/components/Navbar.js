@@ -22,7 +22,7 @@ export default function Navbar() {
 
   const handleLogout = () => {
     logout();
-    router.push("/"); // Пренасочване към начална страница
+    router.push("/");
   };
 
   return (
@@ -32,7 +32,6 @@ export default function Navbar() {
           Event Management
         </Link>
 
-        {/* Desktop menu */}
         <div className="hidden md:flex space-x-6 items-center">
           <Link href="/" className="text-gray-700 hover:text-indigo-600">
             Home
@@ -72,7 +71,6 @@ export default function Navbar() {
           )}
         </div>
 
-        {/* Mobile hamburger */}
         <button
           onClick={toggleMenu}
           className="md:hidden text-gray-700 hover:text-indigo-600"
@@ -81,7 +79,6 @@ export default function Navbar() {
         </button>
       </div>
 
-      {/* Mobile menu */}
       {isOpen && (
         <div className="md:hidden px-6 pb-4 space-y-2">
           <Link href="/" className="block text-gray-700 hover:text-indigo-600">

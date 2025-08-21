@@ -3,16 +3,14 @@
 import Image from "next/image";
 import HomePhoto from "../../public/HomePhoto.jpg";
 import Link from "next/link";
-import { useAuth } from "../context/AuthContext"; // добавено
+import { useAuth } from "../context/AuthContext";
 
 export default function Home() {
-  const { isAuthenticated } = useAuth(); // извличане от контекста
+  const { isAuthenticated } = useAuth();
 
   return (
     <main className="bg-white min-h-screen px-6 py-16 sm:px-12">
-      {/* Hero section */}
       <div className="max-w-screen-xl mx-auto flex flex-col-reverse md:flex-row items-center gap-12">
-        {/* Text content */}
         <div className="flex-1 text-center md:text-left space-y-6">
           <h1 className="text-4xl sm:text-5xl font-bold text-gray-800 leading-tight">
             Welcome to <span className="text-indigo-600">Event Management</span>
@@ -21,7 +19,6 @@ export default function Home() {
             Easily plan, track, and manage all your events in one place.
           </p>
 
-          {/* 👇 Показвай бутоните само ако не е логнат */}
           {!isAuthenticated && (
             <div className="flex justify-center md:justify-start gap-4">
               <Link href="/login">
@@ -39,7 +36,6 @@ export default function Home() {
           )}
         </div>
 
-        {/* Image section */}
         <div className="flex-1">
           <Image
             src={HomePhoto}

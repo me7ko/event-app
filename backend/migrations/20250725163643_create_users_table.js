@@ -7,7 +7,7 @@ exports.up = function (knex) {
     table.increments("id").primary();
     table.string("email").notNullable().unique();
     table.string("password").notNullable();
-    table.timestamps(true, true); // created_at, updated_at
+    table.timestamps(true, true);
   });
 };
 

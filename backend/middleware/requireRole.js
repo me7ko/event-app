@@ -1,4 +1,3 @@
-// middleware/requireRole.js
 module.exports = function requireRole(role) {
   return function (req, res, next) {
     if (!req.user || req.user.role !== role) {

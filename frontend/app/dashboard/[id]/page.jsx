@@ -12,7 +12,6 @@ export default function EventDetailsPage() {
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // Load event details
   useEffect(() => {
     const token = getToken();
     if (!token) {
@@ -85,7 +84,6 @@ export default function EventDetailsPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-10">
-      {/* Header */}
       <div className="flex items-start justify-between gap-4 mb-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">{event.name}</h1>
@@ -120,7 +118,6 @@ export default function EventDetailsPage() {
         </div>
       </div>
 
-      {/* Card */}
       <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
         <div className="p-6">
           <h2 className="text-xl font-semibold text-gray-800 mb-3">
@@ -148,7 +145,6 @@ export default function EventDetailsPage() {
         </div>
       </div>
 
-      {/* Footer actions */}
       <div className="mt-6 flex gap-2">
         <button
           onClick={() => router.push("/dashboard")}

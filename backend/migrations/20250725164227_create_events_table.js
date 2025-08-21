@@ -1,19 +1,19 @@
 exports.up = function (knex) {
   return knex.schema.createTable("events", (table) => {
     table.increments("id").primary();
-    table.string("name").notNullable(); // Event Name
-    table.text("description"); // Description
-    table.timestamp("datetime").notNullable(); // Date and Time
-    table.string("location").notNullable(); // Location
-    table.integer("max_attendees"); // Optional
+    table.string("name").notNullable();
+    table.text("description");
+    table.timestamp("datetime").notNullable();
+    table.string("location").notNullable();
+    table.integer("max_attendees");
     table
       .integer("user_id")
       .unsigned()
       .references("id")
       .inTable("users")
-      .onDelete("CASCADE"); // FK към users
+      .onDelete("CASCADE");
 
-    table.timestamps(true, true); // created_at и updated_at
+    table.timestamps(true, true);
   });
 };
 
