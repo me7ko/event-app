@@ -30,8 +30,7 @@ cd backend
 npm install
 ```
 
-## 2.1. Rename .env.example to .env
-.env:
+## 2.1. Create .env in backend folder
 - PORT=5000
 - JWT_SECRET=your_secret_key
 - DB_USER=your_postgres_user
@@ -61,6 +60,9 @@ npm run dev
 cd ../frontend
 npm install
 ```
+## 3.1. Create .env in frontend folder
+- JWT_SECRET=your_secret_key
+
 ## 3.2. Start the frontend
 ```bash
 npm run dev
