@@ -71,3 +71,10 @@ npm run dev
 - Use npm run dev for development (both backend and frontend).
 - Use migrate:latest whenever you update database schema.
 - Environment files (.env) are not pushed to GitHub. Instead, .env.example provides the required structure.
+
+## How to add admin role
+```sql
+UPDATE users
+SET role = 'admin'
+WHERE email = 'your-admin-email@example.com';
+```
