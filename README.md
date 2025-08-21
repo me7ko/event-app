@@ -36,7 +36,7 @@ npm install
 - DB_USER=your_postgres_user
 - DB_PASSWORD=your_postgres_password
 - DB_HOST=localhost
-- DB_PORT=5432
+- DB_PORT=your_db_port
 - DB_NAME=eventapp
 
 ## 2.2. Create PostgreSQL database
